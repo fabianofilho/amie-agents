@@ -1,0 +1,13 @@
+name: medical_agent
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - fastapi
+  - uvicorn
+  - streamlit
+  - requests
+  - langchain
+  - pip
+  - pip:
+      - ollama

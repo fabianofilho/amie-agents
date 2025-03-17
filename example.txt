@@ -1,0 +1,6 @@
+ID do Paciente: 12345
+Sintomas: Paciente apresenta dor torácica há 2 horas, com irradiação para membro superior esquerdo, associada a sudorese e náusea. A dor é em aperto, intensidade 8/10.
+
+Histórico Médico: Hipertensão arterial há 5 anos, diabetes mellitus tipo 2 há 3 anos. Tabagismo: 20 anos/maço. Infarto agudo do miocárdio há 2 anos.
+
+Medicações Atuais: Losartana 50mg 1x/dia, Metformina 850mg 2x/dia, AAS 100mg 1x/dia, Atorvastatina 20mg 1x/dia.
