@@ -1,8 +1,21 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-langchain==0.1.0
-langchain-community==0.0.10
-langchain-ollama==0.0.1
-streamlit==1.29.0
-requests==2.31.0
-pydantic==2.5.2 
+# Backend e API
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+
+# Frontend
+streamlit>=1.40.0
+
+# LangChain (versões atualizadas 2025)
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+
+# Suporte a Hugging Face (MedGemma via transformers)
+transformers>=4.46.0
+accelerate>=1.0.0
+torch>=2.4.0
+
+# Utilitários
+requests>=2.32.0
+Pillow>=11.0.0  # Para análise de imagens médicas com MedGemma multimodal
