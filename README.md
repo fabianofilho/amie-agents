@@ -1,40 +1,88 @@
-# AMIE Agents: Assistentes Médicos Inteligentes com MedGemma
+<div align="center">
 
-Este repositório contém uma implementação de agentes médicos conversacionais inspirados na arquitetura do **AMIE (Articulate Medical Intelligence Explorer)** do Google DeepMind, utilizando os modelos mais recentes da família **MedGemma** (Google Health AI Developer Foundations).
+# AMIE Agents
 
-## 🚀 O que há de novo (Atualização 2025/2026)
+**Assistentes Médicos Inteligentes com MedGemma**
+Sistema multi-agente de IA conversacional médica inspirado na arquitetura AMIE do Google DeepMind, com supervisão médica integrada.
 
-A pesquisa em IA médica avançou significativamente com as publicações recentes do Google DeepMind sobre o AMIE e o lançamento do MedGemma. Este repositório foi atualizado para refletir esses avanços:
+<br/>
 
-### 1. Arquitetura Multi-Agente (Inspirada no AMIE Longitudinal)
-O AMIE evoluiu de um modelo de diagnóstico pontual para um sistema de gestão longitudinal de doenças. Nossa implementação reflete essa abordagem com múltiplos agentes especializados:
-- **Agente de Diálogo (Dialogue Agent)**: Focado na interação com o paciente, coleta de histórico e empatia.
-- **Agente de Raciocínio Clínico (Mx Agent)**: Focado em diagnósticos diferenciais e planos de manejo baseados em guidelines.
-- **Agente de Segurança Medicamentosa**: Focado em interações e contraindicações.
+<a href="https://huggingface.co/spaces/fabianonbfilho/amie-agents">
+  <img src="https://img.shields.io/badge/%F0%9F%A4%97%20Abrir%20Demo-Hugging%20Face%20Spaces-FFD21E?style=for-the-badge&logo=huggingface&logoColor=000" alt="Abrir no Hugging Face Spaces"/>
+</a>
 
-### 2. Integração com MedGemma (Gemma 3)
-Substituímos os modelos genéricos pela família **MedGemma**, a coleção de modelos abertos do Google otimizados especificamente para compreensão de textos e imagens médicas.
-- Suporte para **MedGemma 1.5 (4B Multimodal)** para análise de exames (Raio-X, ressonância, etc.).
-- Suporte para **MedGemma 27B** para raciocínio clínico complexo e compreensão de prontuários (EHR).
+<br/><br/>
 
-### 3. Physician-Centered Oversight (Supervisão Médica)
-Alinhado com os estudos clínicos de mundo real do AMIE (2025/2026), a arquitetura foi desenhada para atuar como um "Clinician Cockpit", onde a IA realiza a triagem e gera notas SOAP, mas a decisão final e validação permanecem com o médico humano.
+<a href="https://ai.google.dev/gemma/docs/medgemma">
+  <img src="https://img.shields.io/badge/MedGemma-4B%20%7C%2027B-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="MedGemma"/>
+</a>
+&nbsp;
+<a href="https://deepmind.google/technologies/gemini/">
+  <img src="https://img.shields.io/badge/Google-DeepMind-EA4335?style=for-the-badge&logo=google-deepmind&logoColor=white" alt="Google DeepMind"/>
+</a>
+&nbsp;
+<a href="https://ollama.ai/">
+  <img src="https://img.shields.io/badge/Ollama-Local%20LLM-000000?style=for-the-badge&logo=ollama&logoColor=white" alt="Ollama"/>
+</a>
+
+<br/><br/>
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-00D098?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-backend-00D098?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-frontend-00D098?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![LangChain](https://img.shields.io/badge/LangChain-agents-00D098?style=flat-square&logo=langchain&logoColor=white)](https://www.langchain.com/)
+[![Local & Privado](https://img.shields.io/badge/dados-100%25%20local-00D098?style=flat-square&logo=shield&logoColor=white)](#)
+[![Português](https://img.shields.io/badge/idioma-Portugu%C3%AAs-00D098?style=flat-square)](#)
+
+</div>
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## O que h de novo (2025/2026)
 
-- **Modelos Base**: MedGemma 4B/27B (via Ollama ou Hugging Face Transformers)
-- **Framework de Agentes**: LangChain / CrewAI
-- **Backend**: FastAPI
-- **Frontend**: Streamlit
-- **Inferência Local**: Ollama (para privacidade e segurança de dados de saúde)
+A pesquisa em IA mdica avançou significativamente com as publicações recentes do Google DeepMind sobre o AMIE e o lançamento do MedGemma. Este repositório reflete esses avanços.
 
-## 📦 Instalação e Configuração
+### Arquitetura Multi-Agente
+
+Inspirada no AMIE Longitudinal, a implementação utiliza três agentes especializados com supervisão mdica integrada ("Clinician Cockpit"):
+
+| Agente | Função | Descrição |
+|--------|--------|-----------|
+| **Dialogue Agent** | Interação com paciente | Coleta de histórico, empatia e anamnese estruturada |
+| **Mx Agent** | Raciocínio clínico | Diagnósticos diferenciais e planos de manejo baseados em guidelines |
+| **Safety Agent** | Segurança medicamentosa | Análise de interações e contraindicações |
+
+### Integração com MedGemma (Gemma 3)
+
+| Modelo | Uso | Descrição |
+|--------|-----|-----------|
+| **MedGemma 4B** | Testes locais | Multimodal — análise de exames (Raio-X, ressonância) |
+| **MedGemma 27B** | Raciocínio complexo | Compreensão de prontuários (EHR) e raciocínio clínico avançado |
+
+### Physician-Centered Oversight
+
+A IA realiza triagem e gera notas SOAP, mas a decisão final e validação permanecem com o mdico humano — alinhado com os estudos clínicos de mundo real do AMIE (2025/2026).
+
+---
+
+## Tecnologias
+
+| Componente | Tecnologia |
+|------------|-----------|
+| Modelos Base | MedGemma 4B/27B (via Ollama ou HF Transformers) |
+| Framework de Agentes | LangChain / CrewAI |
+| Backend | FastAPI |
+| Frontend | Streamlit |
+| Inferência Local | Ollama (privacidade e segurança de dados) |
+
+---
+
+## Instalação e Configuração
 
 ### Pré-requisitos
+
 - Python 3.9+
-- [Ollama](https://ollama.ai/) instalado localmente (para inferência segura e privada)
+- [Ollama](https://ollama.ai/) instalado localmente
 
 ### Passo a passo
 
@@ -54,15 +102,18 @@ pip install -r requirements.txt
 
 3. Baixe o modelo MedGemma no Ollama:
 ```bash
-# Para o modelo de 4B (mais leve, ideal para testes locais)
+# Modelo de 4B (mais leve, ideal para testes locais)
 ollama run hf.co/mlx-community/medgemma-4b-it-6bit
 
-# Ou para o modelo de 27B (requer mais VRAM, melhor raciocínio clínico)
+# Ou modelo de 27B (requer mais VRAM, melhor raciocínio clínico)
 ollama run hf.co/mlx-community/medgemma-27b-it-bf16
 ```
-*Nota: Você também pode usar a integração direta com Hugging Face Transformers se preferir rodar via PyTorch/Accelerate.*
 
-## 🏃‍♂️ Como Executar
+> Você também pode usar a integração direta com Hugging Face Transformers se preferir rodar via PyTorch/Accelerate.
+
+---
+
+## Como Executar
 
 1. Inicie o servidor FastAPI (Backend dos Agentes):
 ```bash
@@ -76,14 +127,18 @@ streamlit run amie.py
 
 3. Acesse `http://localhost:8501` no seu navegador.
 
-## 📚 Referências e Leituras Recomendadas
+---
 
-1. **Towards conversational diagnostic artificial intelligence** (Nature, 2025) - O paper original do AMIE.
-2. **AMIE gains vision: A research AI agent for multimodal diagnostic dialogue** (Google Research Blog, 2025) - Introdução das capacidades multimodais.
-3. **From diagnosis to treatment: Advancing AMIE for longitudinal disease management** (Google Research Blog, 2025) - A arquitetura de dois agentes (Dialogue e Mx Agent).
-4. **Towards physician-centered oversight of conversational diagnostic AI** (arXiv, 2025) - O framework de supervisão médica e geração de notas SOAP.
-5. **MedGemma Model Card** (Google Health AI Developer Foundations) - Documentação oficial dos modelos MedGemma.
+## Referências
 
-## ⚠️ Aviso Legal (Disclaimer)
+1. **Towards conversational diagnostic artificial intelligence** (Nature, 2025) — O paper original do AMIE.
+2. **AMIE gains vision** (Google Research Blog, 2025) — Capacidades multimodais.
+3. **From diagnosis to treatment** (Google Research Blog, 2025) — Arquitetura de dois agentes (Dialogue e Mx Agent).
+4. **Towards physician-centered oversight of conversational diagnostic AI** (arXiv, 2025) — Framework de supervisão mdica e notas SOAP.
+5. **MedGemma Model Card** (Google Health AI Developer Foundations) — Documentação oficial dos modelos.
 
-Este projeto é estritamente para fins de **pesquisa e desenvolvimento educacional**. Os modelos de IA (incluindo MedGemma) não são dispositivos médicos regulamentados e **não devem ser usados para diagnóstico, tratamento ou aconselhamento médico real** sem a supervisão de um profissional de saúde qualificado. Sempre valide as saídas geradas pela IA.
+---
+
+## Aviso Legal
+
+Este projeto é estritamente para fins de **pesquisa e desenvolvimento educacional**. Os modelos de IA (incluindo MedGemma) não são dispositivos médicos regulamentados e **não devem ser usados para diagnóstico, tratamento ou aconselhamento mdico real** sem a supervisão de um profissional de saúde qualificado.
