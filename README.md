@@ -1,3 +1,14 @@
+---
+title: AMIE Medical Agents
+emoji: 🏥
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 5.29.0
+app_file: app_hf.py
+pinned: false
+---
+
 <div align="center">
 
 # AMIE Agents
