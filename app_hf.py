@@ -75,7 +75,7 @@ Parametros laboratoriais/clinicos e frequencia.""",
 )
 
 
-def get_llm(api_key: str, model: str = "gemma-3-27b-it"):
+def get_llm(api_key: str, model: str = "gemma-4-31b-it"):
     return ChatGoogleGenerativeAI(
         model=model,
         google_api_key=api_key,
@@ -83,8 +83,8 @@ def get_llm(api_key: str, model: str = "gemma-3-27b-it"):
     )
 
 
-async def run_agent_async(prompt_template, inputs: dict, api_key: str) -> str:
-    llm = get_llm(api_key)
+async def run_agent_async(prompt_template, inputs: dict, api_key: str, model: str = "gemma-4-31b-it") -> str:
+    llm = get_llm(api_key, model=model)
     chain = prompt_template | llm
     response = await chain.ainvoke(inputs)
     return response.content
@@ -129,7 +129,7 @@ def transcribe_audio(audio_path, target_field, api_key, cur_symptoms, cur_histor
         return cur_symptoms, cur_history, append(cur_meds, text), text
 
 
-def analyze(symptoms, history, medications, api_key, progress=gr.Progress()):
+def analyze(symptoms, history, medications, api_key, model_name, progress=gr.Progress()):
     effective_key = api_key.strip() or GOOGLE_API_KEY_ENV
     if not effective_key:
         msg = "Informe sua Google API Key."
@@ -142,9 +142,9 @@ def analyze(symptoms, history, medications, api_key, progress=gr.Progress()):
 
     async def run_all():
         return await asyncio.gather(
-            run_agent_async(DIALOGUE_PROMPT, {"symptoms": symptoms, "history": history}, effective_key),
-            run_agent_async(CLINICAL_PROMPT, {"symptoms": symptoms, "history": history}, effective_key),
-            run_agent_async(MEDICATION_PROMPT, {"medications": medications, "history": history}, effective_key),
+            run_agent_async(DIALOGUE_PROMPT, {"symptoms": symptoms, "history": history}, effective_key, model=model_name),
+            run_agent_async(CLINICAL_PROMPT, {"symptoms": symptoms, "history": history}, effective_key, model=model_name),
+            run_agent_async(MEDICATION_PROMPT, {"medications": medications, "history": history}, effective_key, model=model_name),
             return_exceptions=True,
         )
 
@@ -603,7 +603,7 @@ with gr.Blocks(
         <div style="width:30px;height:30px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;font-family:Inter,sans-serif;flex-shrink:0">A</div>
         <div>
             <div style="font-size:15px;font-weight:600;color:#111;font-family:Inter,sans-serif;line-height:1.2">AMIE Medical Agents</div>
-            <div style="font-size:11px;color:#999;font-family:Inter,sans-serif;margin-top:1px">3 agentes clinicos -- Powered by Gemma</div>
+            <div style="font-size:11px;color:#999;font-family:Inter,sans-serif;margin-top:1px">3 agentes clinicos -- Powered by Gemma 4</div>
         </div>
     </div>
     """)
@@ -681,12 +681,21 @@ with gr.Blocks(
             type="password",
             value=GOOGLE_API_KEY_ENV,
         )
+        model_selector = gr.Dropdown(
+            choices=[
+                "gemma-4-31b-it",
+                "gemma-4-26b-a4b-it",
+                "gemma-3-27b-it",
+            ],
+            value="gemma-4-31b-it",
+            label="Modelo",
+        )
 
     gr.HTML("""
     <div class="disclaimer">
         Ferramenta de suporte clinico -- nao substitui o julgamento medico.
         Toda conduta deve ser validada por profissional habilitado.<br/>
-        Inspirado no AMIE (Google DeepMind) -- Powered by Gemma via Google AI.
+        Inspirado no AMIE (Google DeepMind) -- Powered by Gemma 4 via Google AI.
     </div>
     """)
 
@@ -699,7 +708,7 @@ with gr.Blocks(
 
     run_btn.click(
         fn=analyze,
-        inputs=[symptoms, history, medications, api_key_input],
+        inputs=[symptoms, history, medications, api_key_input, model_selector],
         outputs=[out_dialogue, out_clinical, out_medication],
     )
 

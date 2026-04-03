@@ -38,7 +38,10 @@ def check_ollama():
         return False
 
 # Inicializa o modelo Ollama com configurações específicas
-ollama_model = "hf.co/mlx-community/medgemma-4b-it-6bit"  # Usando o modelo MedGemma otimizado para saúde
+ollama_model = os.environ.get(
+    "OLLAMA_MODEL",
+    "hf.co/mlx-community/gemma-4-E4B-it-6bit",  # Gemma 4 E4B — troque por medgemma-4b-it-6bit para usar MedGemma (Gemma 3)
+)
 try:
     if not check_ollama():
         raise Exception("Ollama não está rodando ou não está acessível")
@@ -47,13 +50,12 @@ try:
         model=ollama_model,
         base_url="http://localhost:11434",
         temperature=0.7,
-        num_ctx=32768,  # Contexto maior para o Gemma 3
+        num_ctx=131072,  # Context window de 128K do Gemma 4
         num_thread=4,
         timeout=300,  # Aumentando o timeout para 300 segundos
         num_gpu=1,  # Usando GPU se disponível
         num_batch=512,  # Aumentando o tamanho do batch
         repeat_penalty=1.1,  # Penalidade para repetições
-        stop=["<end_of_turn>"],  # Token de parada
         seed=42  # Semente fixa para consistência
     )
     logger.info(f"Modelo Ollama {ollama_model} inicializado com sucesso")
@@ -165,7 +167,7 @@ async def read_root():
 def main():
     st.title("🤖 Assistente Médico Inteligente")
     st.markdown("""
-    Este assistente utiliza uma arquitetura multi-agente inspirada no **AMIE (Google DeepMind)** e alimentada pelo modelo **MedGemma**:
+    Este assistente utiliza uma arquitetura multi-agente inspirada no **AMIE (Google DeepMind)** e alimentada pelo modelo **Gemma 4**:
     1. **Agente de Diálogo (Dialogue Agent)**: Interage com o paciente para coletar histórico de forma empática.
     2. **Agente de Raciocínio Clínico (Mx Agent)**: Fornece diagnósticos diferenciais e plano de manejo baseado em guidelines.
     3. **Agente de Segurança Medicamentosa**: Avalia interações e contraindicações para prescrição segura.
