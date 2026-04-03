@@ -364,6 +364,22 @@ label > span, .label-wrap span {
     letter-spacing: 0.8px !important;
 }
 
+/* Fix Gradio floating labels: push above input, no overlap */
+.block > label, .block > .label-wrap {
+    position: relative !important;
+    top: 0 !important;
+    margin-bottom: 4px !important;
+    background: transparent !important;
+    z-index: auto !important;
+}
+
+/* Remove the label background strip that overlaps borders */
+.block-label, .block > label > span,
+label[data-testid] > span {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
 /* -- Blocks: reset defaults -------------------------------------------------- */
 .block, .form, .gap, div[class*="block"] {
     box-shadow: none !important;
@@ -510,7 +526,7 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 .pip-done + .pip-connector { border-color: """ + TEAL + """; }
 
 /* -- Result cards (gr.Group wrappers) --------------------------------------- */
-div.card-anamnese, div.card-clinical, div.card-safety {
+[class*="card-anamnese"], [class*="card-clinical"], [class*="card-safety"] {
     background: #fff !important;
     border: 1px solid #e4e7ec !important;
     border-radius: 14px !important;
@@ -519,40 +535,41 @@ div.card-anamnese, div.card-clinical, div.card-safety {
     padding: 0 !important;
 }
 
-/* Kill all internal borders, gaps, and padding inside cards */
-div.card-anamnese *, div.card-clinical *, div.card-safety * {
-    border-color: transparent !important;
-}
-
-div.card-anamnese .block, div.card-clinical .block, div.card-safety .block,
-div.card-anamnese .form, div.card-clinical .form, div.card-safety .form,
-div.card-anamnese .gap, div.card-clinical .gap, div.card-safety .gap {
+/* Nuke ALL internal structure inside cards */
+[class*="card-anamnese"] > *,
+[class*="card-clinical"] > *,
+[class*="card-safety"] > *,
+[class*="card-anamnese"] > * > *,
+[class*="card-clinical"] > * > *,
+[class*="card-safety"] > * > * {
     border: none !important;
-    background: transparent !important;
     box-shadow: none !important;
-    padding: 0 !important;
     border-radius: 0 !important;
     margin: 0 !important;
-}
-
-/* Remove all gaps between children inside card groups */
-div.card-anamnese > div, div.card-clinical > div, div.card-safety > div,
-div.card-anamnese .gap, div.card-clinical .gap, div.card-safety .gap,
-div.card-anamnese .form, div.card-clinical .form, div.card-safety .form {
     gap: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
 }
 
-/* Re-apply specific borders for internal elements */
-div.card-anamnese .result-header, div.card-clinical .result-header, div.card-safety .result-header {
-    border-bottom: none !important;
+/* Restore specific internal styles */
+[class*="card-"] .result-header {
+    padding: 12px 16px !important;
+    background: inherit !important;
 }
 
-div.card-safety .export-footer {
+[class*="card-"] .result-body {
+    padding: 14px 16px !important;
+    background: #fff !important;
+}
+
+[class*="card-safety"] .export-footer {
     border-top: 1px solid #f0f2f5 !important;
+    padding: 10px 16px !important;
+    background: #f9fafb !important;
 }
 
-div.card-safety .export-footer + div button {
-    margin: 0 8px 8px !important;
+[class*="card-safety"] button {
+    margin: 4px 8px 10px !important;
 }
 
 .result-header {
@@ -581,14 +598,14 @@ div.card-safety .export-footer + div button {
     letter-spacing: 0.5px;
 }
 
-.rh-anamnese { background: """ + TEAL_LIGHT + """; color: """ + TEAL + """; }
-.rh-anamnese .rh-icon { background: #cde9df; color: """ + TEAL + """; }
+div.rh-anamnese { background: """ + TEAL_LIGHT + """ !important; color: """ + TEAL + """ !important; }
+div.rh-anamnese .rh-icon { background: #cde9df !important; color: """ + TEAL + """ !important; }
 
-.rh-clinical { background: #e8f4fd; color: #1a5276; }
-.rh-clinical .rh-icon { background: #d4e8f7; color: #1a5276; }
+div.rh-clinical { background: #e8f4fd !important; color: #1a5276 !important; }
+div.rh-clinical .rh-icon { background: #d4e8f7 !important; color: #1a5276 !important; }
 
-.rh-safety { background: #fef7e6; color: #92400e; }
-.rh-safety .rh-icon { background: #fdecc8; color: #92400e; }
+div.rh-safety { background: #fef7e6 !important; color: #92400e !important; }
+div.rh-safety .rh-icon { background: #fdecc8 !important; color: #92400e !important; }
 
 .result-body {
     padding: 14px 16px !important;
