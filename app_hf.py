@@ -297,18 +297,18 @@ CSS = """
     color-scheme: light !important;
     --body-background-fill: #f7f8fa !important;
     --block-background-fill: #ffffff !important;
-    --block-border-color: #e4e7ec !important;
+    --block-border-color: transparent !important;
     --block-label-background-fill: #ffffff !important;
-    --block-label-text-color: #555555 !important;
+    --block-label-text-color: #6b7280 !important;
     --block-title-text-color: #1a1a1a !important;
     --input-background-fill: #ffffff !important;
     --input-border-color: #dde1e6 !important;
     --input-placeholder-color: #a0a7b0 !important;
     --panel-background-fill: #ffffff !important;
-    --panel-border-color: #e4e7ec !important;
+    --panel-border-color: transparent !important;
     --background-fill-primary: #f7f8fa !important;
     --background-fill-secondary: #ffffff !important;
-    --border-color-primary: #e4e7ec !important;
+    --border-color-primary: transparent !important;
     --border-color-accent: """ + TEAL + """ !important;
     --color-accent: """ + TEAL + """ !important;
     --body-text-color: #1a1a1a !important;
@@ -364,18 +364,24 @@ label > span, .label-wrap span {
     letter-spacing: 0.8px !important;
 }
 
-/* -- Blocks ------------------------------------------------------------------ */
+/* -- Blocks: reset all borders by default ----------------------------------- */
 .block, .form, .gap, div[class*="block"] {
     background: transparent !important;
     box-shadow: none !important;
+    border: none !important;
 }
 
-/* -- Panels ------------------------------------------------------------------ */
+/* -- Input panel ------------------------------------------------------------- */
 .input-panel {
     background: #ffffff !important;
     border: 1px solid #e4e7ec !important;
     border-radius: 16px !important;
     padding: 0 !important;
+}
+
+.input-panel > .form, .input-panel > div > .form {
+    padding: 20px !important;
+    gap: 6px !important;
 }
 
 .output-panel {
@@ -431,50 +437,50 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
     display: flex;
     align-items: center;
     gap: 0;
-    padding: 14px 18px;
+    padding: 16px 20px;
     background: #fff;
     border: 1px solid #e4e7ec;
     border-radius: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-family: 'DM Sans', sans-serif;
 }
 
 .pip-step {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
 }
 
 .pip-connector {
-    width: 24px;
-    height: 2px;
-    background: #e4e7ec;
+    width: 28px;
+    height: 0;
+    border-top: 2px dashed #d1d5db;
     flex-shrink: 0;
-    margin: 0 4px;
+    margin: 0 6px;
 }
 
 .pip-icon {
-    width: 24px; height: 24px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    font-size: 11px; font-weight: 700;
+    font-size: 12px; font-weight: 700;
     transition: all 0.3s;
 }
 
-.pip-pending .pip-icon { background: #f3f4f6; border: 2px solid #d1d5db; }
-.pip-running .pip-icon { background: #fff; border: 2px solid """ + TEAL + """; animation: pip-spin 1s linear infinite; }
-.pip-done .pip-icon { background: """ + TEAL + """; border: 2px solid """ + TEAL + """; }
-.pip-error .pip-icon { background: #fef2f2; border: 2px solid #ef4444; color: #ef4444; }
+.pip-pending .pip-icon { background: #f9fafb; border: 2.5px solid #d1d5db; }
+.pip-running .pip-icon { background: """ + TEAL_LIGHT + """; border: 2.5px solid """ + TEAL + """; animation: pip-spin 1.2s ease-in-out infinite; }
+.pip-done .pip-icon { background: """ + TEAL + """; border: 2.5px solid """ + TEAL + """; }
+.pip-error .pip-icon { background: #fef2f2; border: 2.5px solid #ef4444; color: #ef4444; }
 
 @keyframes pip-spin {
-    0% { box-shadow: 0 0 0 0 rgba(15,110,86,0.3); }
-    100% { box-shadow: 0 0 0 6px rgba(15,110,86,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(15,110,86,0.25); }
+    50% { box-shadow: 0 0 0 6px rgba(15,110,86,0); }
 }
 
 .pip-name {
-    font-size: 12px; font-weight: 600; color: #1a1a1a;
+    font-size: 13px; font-weight: 600; color: #1a1a1a;
     font-family: 'DM Sans', sans-serif;
     line-height: 1.2;
 }
@@ -486,14 +492,30 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 }
 
 .pip-done .pip-name { color: """ + TEAL + """; }
+.pip-done + .pip-connector { border-color: """ + TEAL + """; }
 
-/* -- Result cards ----------------------------------------------------------- */
-.result-card {
+/* -- Result cards (gr.Group wrappers) --------------------------------------- */
+.card-anamnese, .card-clinical, .card-safety {
     background: #fff !important;
     border: 1px solid #e4e7ec !important;
     border-radius: 14px !important;
     overflow: hidden !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 8px !important;
+    padding: 0 !important;
+}
+
+.card-anamnese .block, .card-clinical .block, .card-safety .block,
+.card-anamnese .form, .card-clinical .form, .card-safety .form,
+.card-anamnese > .group, .card-clinical > .group, .card-safety > .group {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+.card-anamnese > div, .card-clinical > div, .card-safety > div {
+    gap: 0 !important;
 }
 
 .result-header {
@@ -504,15 +526,13 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    border-bottom: 1px solid #f0f2f5;
 }
 
 .result-header .rh-icon {
-    width: 28px; height: 28px;
+    width: 30px; height: 30px;
     border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    font-size: 14px;
 }
 
 .result-header .rh-label {
@@ -524,8 +544,8 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
     letter-spacing: 0.5px;
 }
 
-.rh-anamnese { background: #e6f5f0; color: #0f6e56; }
-.rh-anamnese .rh-icon { background: #d1ede4; color: #0f6e56; }
+.rh-anamnese { background: """ + TEAL_LIGHT + """; color: """ + TEAL + """; }
+.rh-anamnese .rh-icon { background: #cde9df; color: """ + TEAL + """; }
 
 .rh-clinical { background: #e8f4fd; color: #1a5276; }
 .rh-clinical .rh-icon { background: #d4e8f7; color: #1a5276; }
@@ -534,7 +554,15 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 .rh-safety .rh-icon { background: #fdecc8; color: #92400e; }
 
 .result-body {
-    padding: 14px 16px !important;
+    padding: 16px !important;
+    min-height: 48px;
+}
+
+.result-body:empty::before, .result-body .prose:empty::before, .result-body .markdown:empty::before {
+    content: "Aguardando analise...";
+    color: #c9cfd6;
+    font-style: italic;
+    font-size: 13px;
 }
 
 .result-body .prose, .result-body .markdown {
@@ -555,71 +583,15 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 
 /* -- Export footer ---------------------------------------------------------- */
 .export-footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
+    padding: 10px 16px;
     background: #f9fafb;
     border-top: 1px solid #f0f2f5;
-    border-radius: 0 0 14px 14px;
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     color: #9ca3af;
-}
-
-/* -- Model selector compact ------------------------------------------------- */
-.model-compact {
-    background: transparent !important;
-    border: none !important;
-}
-
-.model-compact .block {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-}
-
-.model-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: #f3f4f6;
-    border-radius: 100px;
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    color: #6b7280;
-    cursor: default;
-}
-
-.model-tag .dot {
-    width: 6px; height: 6px;
-    background: """ + TEAL + """;
-    border-radius: 50%;
-}
-
-/* -- Voice compact ---------------------------------------------------------- */
-.voice-compact {
-    background: #f9fafb !important;
-    border: 1px solid #e4e7ec !important;
-    border-radius: 12px !important;
-    padding: 12px !important;
-    margin-bottom: 4px !important;
-}
-
-.voice-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 8px;
 }
-
-.voice-tag svg { opacity: 0.5; }
 
 /* -- Accordion -------------------------------------------------------------- */
 details, details summary {
@@ -647,8 +619,6 @@ details summary {
     line-height: 1.6;
     text-align: center;
 }
-
-.disclaimer a { color: """ + TEAL + """; text-decoration: none; }
 
 /* -- Header ----------------------------------------------------------------- */
 .app-header {
@@ -753,7 +723,7 @@ details summary {
     textarea { font-size: 16px !important; }
     .analyze-btn button { font-size: 16px !important; min-height: 52px !important; }
     .pipeline { flex-direction: column; gap: 8px; align-items: flex-start; }
-    .pip-connector { width: 2px; height: 16px; margin: 0 0 0 11px; }
+    .pip-connector { width: 0; height: 16px; border-top: none; border-left: 2px dashed #d1d5db; margin: 0 0 0 13px; }
     .app-badges { display: none; }
     .app-header { padding: 12px 0 10px; }
 }
@@ -883,17 +853,8 @@ with gr.Blocks(
         # ===== LEFT: Input panel ==============================================
         with gr.Column(scale=2, elem_classes=["input-panel"]):
 
-            # -- Voice (compact) -----------------------------------------------
-            with gr.Group(elem_classes=["voice-compact"]):
-                gr.HTML("""
-                <div class="voice-tag">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    </svg>
-                    Gravacao de voz &mdash; transcricao automatica via Gemini Flash
-                </div>
-                """)
+            # -- Voice (collapsible) -------------------------------------------
+            with gr.Accordion("Gravacao de voz", open=False):
                 with gr.Row():
                     audio_input = gr.Audio(
                         sources=["microphone", "upload"],
@@ -911,15 +872,6 @@ with gr.Blocks(
                 transcription_status = gr.Markdown("", elem_classes=["transcription-status"])
 
             # -- Patient data --------------------------------------------------
-            gr.HTML("""
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0">
-                <div style="display:flex;align-items:center;gap:6px">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
-                    <span style="font-family:'DM Mono',monospace;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px">Dados do paciente</span>
-                </div>
-            </div>
-            """)
-
             symptoms = gr.Textbox(label="SINTOMAS", placeholder="Queixa principal, inicio, caracterizacao...", lines=2)
             history = gr.Textbox(label="HISTORICO MEDICO", placeholder="Comorbidades, cirurgias, alergias...", lines=2)
             medications = gr.Textbox(label="MEDICACOES", placeholder="Nome, dose e frequencia...", lines=2)
@@ -930,21 +882,16 @@ with gr.Blocks(
             # -- Analyze button ------------------------------------------------
             run_btn = gr.Button("Analisar com 3 agentes", variant="primary", size="lg", elem_classes=["analyze-btn"])
 
-            # -- Model selector (compact inline) -------------------------------
-            with gr.Row():
-                gr.HTML('<div class="model-tag"><span class="dot"></span>Modelo ativo</div>')
-                model_selector = gr.Dropdown(
-                    choices=[
-                        "gemma-4-31b-it",
-                        "gemma-4-26b-a4b-it",
-                        "gemma-3-27b-it",
-                    ],
-                    value="gemma-4-31b-it",
-                    label="",
-                    show_label=False,
-                    scale=2,
-                    elem_classes=["model-compact"],
-                )
+            # -- Model selector ------------------------------------------------
+            model_selector = gr.Dropdown(
+                choices=[
+                    "gemma-4-31b-it",
+                    "gemma-4-26b-a4b-it",
+                    "gemma-3-27b-it",
+                ],
+                value="gemma-4-31b-it",
+                label="MODELO",
+            )
 
             # -- API Key (discrete) --------------------------------------------
             with gr.Accordion("API Key", open=not bool(GOOGLE_API_KEY_ENV)):
@@ -962,58 +909,56 @@ with gr.Blocks(
             pipeline_bar = gr.HTML(value=_pipeline_html(), elem_classes=["pipeline-wrap"])
 
             # -- Anamnese card -------------------------------------------------
-            gr.HTML("""
-            <div class="result-card">
+            with gr.Group(elem_classes=["card-anamnese"]):
+                gr.HTML("""
                 <div class="result-header rh-anamnese">
                     <div class="rh-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                     </div>
                     <div>
                         <div>Anamnese &mdash; lacunas</div>
                         <div class="rh-label">Agente de dialogo</div>
                     </div>
                 </div>
-            </div>
-            """)
-            out_dialogue = gr.Markdown(value="", elem_classes=["result-body"])
+                """)
+                out_dialogue = gr.Markdown(value="", elem_classes=["result-body"])
 
             # -- Clinical card -------------------------------------------------
-            gr.HTML("""
-            <div class="result-card">
+            with gr.Group(elem_classes=["card-clinical"]):
+                gr.HTML("""
                 <div class="result-header rh-clinical">
                     <div class="rh-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                     </div>
                     <div>
                         <div>Raciocinio clinico</div>
                         <div class="rh-label">Diagnostico + conduta</div>
                     </div>
                 </div>
-            </div>
-            """)
-            out_clinical = gr.Markdown(value="", elem_classes=["result-body"])
+                """)
+                out_clinical = gr.Markdown(value="", elem_classes=["result-body"])
 
-            # -- Safety card ---------------------------------------------------
-            gr.HTML("""
-            <div class="result-card">
+            # -- Safety card + export ------------------------------------------
+            with gr.Group(elem_classes=["card-safety"]):
+                gr.HTML("""
                 <div class="result-header rh-safety">
                     <div class="rh-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     </div>
                     <div>
                         <div>Seguranca farmacologica</div>
                         <div class="rh-label">Interacoes + ajustes</div>
                     </div>
                 </div>
-            </div>
-            """)
-            out_medication = gr.Markdown(value="", elem_classes=["result-body"])
+                """)
+                out_medication = gr.Markdown(value="", elem_classes=["result-body"])
 
-            # -- Export footer -------------------------------------------------
-            gr.HTML('<div class="export-footer">Exportar evolucao</div>')
-            with gr.Row():
-                export_soap_btn = gr.Button("SOAP", variant="secondary", size="sm")
-                export_md_btn = gr.Button("Markdown", variant="secondary", size="sm")
+                # Export inside card
+                gr.HTML('<div class="export-footer">Exportar evolucao</div>')
+                with gr.Row():
+                    export_soap_btn = gr.Button("SOAP", variant="secondary", size="sm")
+                    export_md_btn = gr.Button("Markdown", variant="secondary", size="sm")
+
             soap_out = gr.Markdown(visible=False)
 
     # -- Disclaimer ------------------------------------------------------------
