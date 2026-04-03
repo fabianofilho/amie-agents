@@ -75,6 +75,8 @@ Parametros laboratoriais/clinicos e frequencia.""",
 )
 
 
+# -- Helpers -------------------------------------------------------------------
+
 def get_llm(api_key: str, model: str = "gemma-4-31b-it"):
     return ChatGoogleGenerativeAI(
         model=model,
@@ -91,7 +93,6 @@ async def run_agent_async(prompt_template, inputs: dict, api_key: str, model: st
 
 
 def transcribe_audio(audio_path, target_field, api_key, cur_symptoms, cur_history, cur_meds):
-    """Transcribe audio using Gemini Flash and route to selected field."""
     if audio_path is None:
         return cur_symptoms, cur_history, cur_meds, "Nenhum audio gravado."
 
@@ -129,16 +130,47 @@ def transcribe_audio(audio_path, target_field, api_key, cur_symptoms, cur_histor
         return cur_symptoms, cur_history, append(cur_meds, text), text
 
 
+def _pipeline_html(states=None):
+    if states is None:
+        states = ["pending", "pending", "pending"]
+    agents = [
+        ("Anamnese", "Lacunas clinicas"),
+        ("Diagnostico", "Raciocinio clinico"),
+        ("Farmacia", "Seguranca meds."),
+    ]
+    icons = {
+        "pending": '<span class="pip-icon pip-pending"></span>',
+        "running": '<span class="pip-icon pip-running"></span>',
+        "done": '<span class="pip-icon pip-done"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>',
+        "error": '<span class="pip-icon pip-error">!</span>',
+    }
+    steps = []
+    for i, (name, desc) in enumerate(agents):
+        state = states[i]
+        steps.append(f"""
+        <div class="pip-step pip-{state}">
+            {icons[state]}
+            <div class="pip-text">
+                <div class="pip-name">{name}</div>
+                <div class="pip-desc">{desc}</div>
+            </div>
+        </div>
+        """)
+        if i < 2:
+            steps.append('<div class="pip-connector"></div>')
+    return f'<div class="pipeline">{" ".join(steps)}</div>'
+
+
 def analyze(symptoms, history, medications, api_key, model_name, progress=gr.Progress()):
     effective_key = api_key.strip() or GOOGLE_API_KEY_ENV
     if not effective_key:
         msg = "Informe sua Google API Key."
-        return msg, msg, msg
+        return _pipeline_html(["error", "error", "error"]), msg, msg, msg
     if not all([symptoms.strip(), history.strip(), medications.strip()]):
         msg = "Preencha todos os campos."
-        return msg, msg, msg
+        return _pipeline_html(["error", "error", "error"]), msg, msg, msg
 
-    progress(0.1, desc="Agente 1/3: Anamnese...")
+    progress(0.1, desc="Executando 3 agentes em paralelo...")
 
     async def run_all():
         return await asyncio.gather(
@@ -151,22 +183,25 @@ def analyze(symptoms, history, medications, api_key, model_name, progress=gr.Pro
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        progress(0.3, desc="Agente 2/3: Raciocinio clinico...")
+        progress(0.4, desc="Aguardando respostas...")
         results = loop.run_until_complete(run_all())
         loop.close()
         progress(1.0, desc="Concluido.")
     except Exception as e:
         err = f"Erro: {str(e)}"
-        return err, err, err
+        return _pipeline_html(["error", "error", "error"]), err, err, err
 
     processed = []
+    states = []
     for r in results:
         if isinstance(r, Exception):
             processed.append(f"Erro neste agente: {str(r)}")
+            states.append("error")
         else:
             processed.append(r)
+            states.append("done")
 
-    return processed[0], processed[1], processed[2]
+    return _pipeline_html(states), processed[0], processed[1], processed[2]
 
 
 def export_soap(symptoms, history, medications, dialogue, clinical, medication):
@@ -211,43 +246,82 @@ def export_soap(symptoms, history, medications, dialogue, clinical, medication):
     return gr.update(value=soap, visible=True)
 
 
+def export_markdown(symptoms, history, medications, dialogue, clinical, medication):
+    if not any([dialogue.strip(), clinical.strip(), medication.strip()]):
+        return gr.update(value="Execute a analise primeiro.", visible=True)
+
+    md = f"""# Relatorio Clinico -- AMIE Medical Agents
+**Data:** {date.today().strftime('%d/%m/%Y')}
+
+---
+
+## Dados do Paciente
+- **Sintomas:** {symptoms}
+- **Historico:** {history}
+- **Medicacoes:** {medications}
+
+---
+
+## Anamnese -- Lacunas Identificadas
+{dialogue}
+
+---
+
+## Raciocinio Clinico
+{clinical}
+
+---
+
+## Seguranca Medicamentosa
+{medication}
+
+---
+*Gerado por AMIE Medical Agents -- Revisao obrigatoria por profissional habilitado*"""
+
+    return gr.update(value=md, visible=True)
+
+
 def load_example():
     return EXAMPLE["symptoms"], EXAMPLE["history"], EXAMPLE["medications"]
 
 
 # -- CSS -----------------------------------------------------------------------
+TEAL = "#0f6e56"
+TEAL_LIGHT = "#e6f5f0"
+TEAL_HOVER = "#0b5a46"
+
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap');
 
 :root, .dark, [data-theme="dark"] {
     color-scheme: light !important;
-    --body-background-fill: #ffffff !important;
+    --body-background-fill: #f7f8fa !important;
     --block-background-fill: #ffffff !important;
-    --block-border-color: #e8e8e8 !important;
+    --block-border-color: #e4e7ec !important;
     --block-label-background-fill: #ffffff !important;
     --block-label-text-color: #555555 !important;
-    --block-title-text-color: #111111 !important;
+    --block-title-text-color: #1a1a1a !important;
     --input-background-fill: #ffffff !important;
-    --input-border-color: #e0e0e0 !important;
-    --input-placeholder-color: #b0b0b0 !important;
-    --panel-background-fill: #fafafa !important;
-    --panel-border-color: #e8e8e8 !important;
-    --background-fill-primary: #ffffff !important;
-    --background-fill-secondary: #fafafa !important;
-    --border-color-primary: #e8e8e8 !important;
-    --border-color-accent: #111111 !important;
-    --color-accent: #111111 !important;
-    --body-text-color: #111111 !important;
-    --body-text-color-subdued: #666666 !important;
-    --link-text-color: #111111 !important;
-    --button-primary-background-fill: #111111 !important;
-    --button-primary-background-fill-hover: #333333 !important;
+    --input-border-color: #dde1e6 !important;
+    --input-placeholder-color: #a0a7b0 !important;
+    --panel-background-fill: #ffffff !important;
+    --panel-border-color: #e4e7ec !important;
+    --background-fill-primary: #f7f8fa !important;
+    --background-fill-secondary: #ffffff !important;
+    --border-color-primary: #e4e7ec !important;
+    --border-color-accent: """ + TEAL + """ !important;
+    --color-accent: """ + TEAL + """ !important;
+    --body-text-color: #1a1a1a !important;
+    --body-text-color-subdued: #6b7280 !important;
+    --link-text-color: """ + TEAL + """ !important;
+    --button-primary-background-fill: """ + TEAL + """ !important;
+    --button-primary-background-fill-hover: """ + TEAL_HOVER + """ !important;
     --button-primary-text-color: #ffffff !important;
-    --button-primary-border-color: #111111 !important;
+    --button-primary-border-color: """ + TEAL + """ !important;
     --button-secondary-background-fill: #ffffff !important;
-    --button-secondary-background-fill-hover: #f5f5f5 !important;
-    --button-secondary-text-color: #333333 !important;
-    --button-secondary-border-color: #dddddd !important;
+    --button-secondary-background-fill-hover: """ + TEAL_LIGHT + """ !important;
+    --button-secondary-text-color: """ + TEAL + """ !important;
+    --button-secondary-border-color: #d0d5dd !important;
     --shadow-drop: none !important;
     --shadow-drop-lg: none !important;
 }
@@ -255,102 +329,82 @@ CSS = """
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body, .gradio-container, .main, footer {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-    background: #ffffff !important;
-    color: #111111 !important;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important;
+    background: #f7f8fa !important;
+    color: #1a1a1a !important;
 }
 
 footer { display: none !important; }
-.gradio-container { max-width: 720px !important; margin: 0 auto !important; }
+.gradio-container { max-width: 1180px !important; margin: 0 auto !important; padding: 0 16px !important; }
 
-/* -- Inputs ----------------------------------------------------------------- */
+/* -- Typography -------------------------------------------------------------- */
 textarea, input[type="text"], input[type="password"] {
     background: #fff !important;
-    border: 1px solid #e0e0e0 !important;
-    border-radius: 8px !important;
-    color: #111 !important;
-    font-family: 'Inter', sans-serif !important;
+    border: 1px solid #dde1e6 !important;
+    border-radius: 10px !important;
+    color: #1a1a1a !important;
+    font-family: 'DM Sans', sans-serif !important;
     font-size: 14px !important;
-    transition: border-color 0.15s !important;
+    transition: border-color 0.2s !important;
     box-shadow: none !important;
 }
 
 textarea:focus, input:focus {
-    border-color: #111 !important;
-    box-shadow: none !important;
+    border-color: """ + TEAL + """ !important;
+    box-shadow: 0 0 0 3px rgba(15,110,86,0.08) !important;
     outline: none !important;
 }
 
 label > span, .label-wrap span {
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #555 !important;
-    font-family: 'Inter', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #6b7280 !important;
+    font-family: 'DM Mono', monospace !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
+    letter-spacing: 0.8px !important;
 }
 
-/* -- Blocks flat ------------------------------------------------------------- */
+/* -- Blocks ------------------------------------------------------------------ */
 .block, .form, .gap, div[class*="block"] {
-    background: #fff !important;
+    background: transparent !important;
     box-shadow: none !important;
+}
+
+/* -- Panels ------------------------------------------------------------------ */
+.input-panel {
+    background: #ffffff !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 16px !important;
+    padding: 0 !important;
+}
+
+.output-panel {
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 /* -- Buttons ----------------------------------------------------------------- */
 button {
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'DM Sans', sans-serif !important;
     font-weight: 500 !important;
-    transition: all 0.15s !important;
+    transition: all 0.2s !important;
     box-shadow: none !important;
-    letter-spacing: 0 !important;
 }
 
 button.primary, button[variant="primary"] {
-    border-radius: 10px !important;
+    border-radius: 12px !important;
 }
 
 button.secondary, button[variant="secondary"] {
     border-radius: 100px !important;
     background: #fff !important;
-    color: #444 !important;
-    border: 1px solid #ddd !important;
+    color: """ + TEAL + """ !important;
+    border: 1px solid #d0d5dd !important;
+    font-size: 13px !important;
 }
 
-button.secondary:hover { background: #f5f5f5 !important; border-color: #bbb !important; }
-button.sm { padding: 6px 14px !important; font-size: 12px !important; }
-
-/* -- Voice section ---------------------------------------------------------- */
-.voice-section {
-    background: #f8f9fa !important;
-    border: 1px solid #e8e8e8 !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
-    margin-bottom: 12px !important;
-}
-
-.voice-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-family: 'Inter', sans-serif;
-}
-
-.voice-icon {
-    width: 32px; height: 32px;
-    background: #111;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-}
-
-.voice-label {
-    font-size: 13px; font-weight: 600; color: #111;
-}
-
-.voice-sublabel {
-    font-size: 11px; color: #999;
-}
+button.secondary:hover { background: """ + TEAL_LIGHT + """ !important; border-color: """ + TEAL + """ !important; }
+button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 
 /* -- Analyze button --------------------------------------------------------- */
 .analyze-btn button {
@@ -358,189 +412,355 @@ button.sm { padding: 6px 14px !important; font-size: 12px !important; }
     padding: 14px 24px !important;
     font-size: 15px !important;
     font-weight: 600 !important;
-    border-radius: 10px !important;
-    background: #111 !important;
+    border-radius: 12px !important;
+    background: """ + TEAL + """ !important;
     color: #fff !important;
     border: none !important;
     min-height: 48px !important;
+    letter-spacing: -0.2px !important;
 }
 
 .analyze-btn button:hover {
-    background: #333 !important;
+    background: """ + TEAL_HOVER + """ !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15,110,86,0.2) !important;
 }
+
+/* -- Pipeline bar ----------------------------------------------------------- */
+.pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid #e4e7ec;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.pip-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.pip-connector {
+    width: 24px;
+    height: 2px;
+    background: #e4e7ec;
+    flex-shrink: 0;
+    margin: 0 4px;
+}
+
+.pip-icon {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px; font-weight: 700;
+    transition: all 0.3s;
+}
+
+.pip-pending .pip-icon { background: #f3f4f6; border: 2px solid #d1d5db; }
+.pip-running .pip-icon { background: #fff; border: 2px solid """ + TEAL + """; animation: pip-spin 1s linear infinite; }
+.pip-done .pip-icon { background: """ + TEAL + """; border: 2px solid """ + TEAL + """; }
+.pip-error .pip-icon { background: #fef2f2; border: 2px solid #ef4444; color: #ef4444; }
+
+@keyframes pip-spin {
+    0% { box-shadow: 0 0 0 0 rgba(15,110,86,0.3); }
+    100% { box-shadow: 0 0 0 6px rgba(15,110,86,0); }
+}
+
+.pip-name {
+    font-size: 12px; font-weight: 600; color: #1a1a1a;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.2;
+}
+
+.pip-desc {
+    font-size: 10px; color: #9ca3af;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.2;
+}
+
+.pip-done .pip-name { color: """ + TEAL + """; }
 
 /* -- Result cards ----------------------------------------------------------- */
 .result-card {
-    border: 1px solid #e8e8e8 !important;
-    border-radius: 10px !important;
+    background: #fff !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 14px !important;
     overflow: hidden !important;
     margin-bottom: 10px !important;
 }
 
-.result-header-anamnese {
-    background: #EBF5FB !important;
-    border-bottom: 1px solid #d4e6f1 !important;
-    padding: 10px 14px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #1a5276 !important;
-    font-family: 'Inter', sans-serif !important;
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 1px solid #f0f2f5;
 }
 
-.result-header-clinical {
-    background: #E8F8F5 !important;
-    border-bottom: 1px solid #d1f2eb !important;
-    padding: 10px 14px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #0e6655 !important;
-    font-family: 'Inter', sans-serif !important;
+.result-header .rh-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
 }
 
-.result-header-safety {
-    background: #FEF5E7 !important;
-    border-bottom: 1px solid #fdebd0 !important;
-    padding: 10px 14px !important;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #935116 !important;
-    font-family: 'Inter', sans-serif !important;
+.result-header .rh-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 400;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
+
+.rh-anamnese { background: #e6f5f0; color: #0f6e56; }
+.rh-anamnese .rh-icon { background: #d1ede4; color: #0f6e56; }
+
+.rh-clinical { background: #e8f4fd; color: #1a5276; }
+.rh-clinical .rh-icon { background: #d4e8f7; color: #1a5276; }
+
+.rh-safety { background: #fef7e6; color: #92400e; }
+.rh-safety .rh-icon { background: #fdecc8; color: #92400e; }
 
 .result-body {
-    padding: 12px 14px !important;
+    padding: 14px 16px !important;
 }
 
-/* -- Markdown in results ---------------------------------------------------- */
-.prose, .markdown {
-    color: #222 !important;
+.result-body .prose, .result-body .markdown {
+    color: #374151 !important;
     font-size: 13px !important;
-    line-height: 1.7 !important;
+    line-height: 1.75 !important;
 }
 
-.prose h2, .markdown h2 {
+.result-body .prose h2, .result-body .markdown h2 {
     font-size: 13px !important; font-weight: 600 !important;
-    color: #111 !important; margin: 14px 0 6px !important;
+    color: #1a1a1a !important; margin: 16px 0 6px !important;
     padding-bottom: 4px !important;
-    border-bottom: 1px solid #f0f0f0 !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
 
-.prose strong, .markdown strong { color: #111 !important; }
+.result-body .prose strong, .result-body .markdown strong { color: #1a1a1a !important; }
+
+/* -- Export footer ---------------------------------------------------------- */
+.export-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border-top: 1px solid #f0f2f5;
+    border-radius: 0 0 14px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+/* -- Model selector compact ------------------------------------------------- */
+.model-compact {
+    background: transparent !important;
+    border: none !important;
+}
+
+.model-compact .block {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.model-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #f3f4f6;
+    border-radius: 100px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: #6b7280;
+    cursor: default;
+}
+
+.model-tag .dot {
+    width: 6px; height: 6px;
+    background: """ + TEAL + """;
+    border-radius: 50%;
+}
+
+/* -- Voice compact ---------------------------------------------------------- */
+.voice-compact {
+    background: #f9fafb !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    margin-bottom: 4px !important;
+}
+
+.voice-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.voice-tag svg { opacity: 0.5; }
 
 /* -- Accordion -------------------------------------------------------------- */
 details, details summary {
     background: #fff !important;
-    border: 1px solid #e8e8e8 !important;
-    border-radius: 10px !important;
-    color: #111 !important;
+    border: 1px solid #e4e7ec !important;
+    border-radius: 12px !important;
+    color: #1a1a1a !important;
 }
 
-details[open] { border-color: #ccc !important; }
+details[open] { border-color: #d0d5dd !important; }
 
 details summary {
     font-size: 12px !important; font-weight: 500 !important;
     padding: 8px 14px !important; border: none !important;
-    color: #888 !important;
+    color: #9ca3af !important;
+    font-family: 'DM Mono', monospace !important;
 }
 
 /* -- Disclaimer ------------------------------------------------------------- */
 .disclaimer {
-    font-size: 11px; color: #bbb;
-    border-top: 1px solid #f0f0f0;
-    padding-top: 12px; margin-top: 16px;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.5;
+    font-size: 11px; color: #b0b7c3;
+    border-top: 1px solid #f0f2f5;
+    padding-top: 14px; margin-top: 18px;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.6;
     text-align: center;
 }
 
-/* -- Mic button (JS inline) ------------------------------------------------- */
+.disclaimer a { color: """ + TEAL + """; text-decoration: none; }
+
+/* -- Header ----------------------------------------------------------------- */
+.app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 14px;
+    border-bottom: 1px solid #e4e7ec;
+    margin-bottom: 16px;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.app-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-logo {
+    width: 34px; height: 34px;
+    background: """ + TEAL + """;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 15px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    flex-shrink: 0;
+}
+
+.app-title {
+    font-size: 16px; font-weight: 700; color: #1a1a1a;
+    line-height: 1.2; letter-spacing: -0.3px;
+}
+
+.app-subtitle {
+    font-size: 11px; color: #9ca3af;
+    font-family: 'DM Mono', monospace;
+    margin-top: 2px;
+}
+
+.app-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.3px;
+}
+
+.badge-online { background: """ + TEAL_LIGHT + """; color: """ + TEAL + """; }
+.badge-lang { background: #f3f4f6; color: #6b7280; }
+
+/* -- Mic button ------------------------------------------------------------- */
 .mic-btn {
     position: absolute;
     bottom: 8px; right: 8px;
-    width: 32px; height: 32px;
+    width: 30px; height: 30px;
     background: #fff;
-    border: 1px solid #ddd !important;
-    border-radius: 50% !important;
+    border: 1px solid #dde1e6 !important;
+    border-radius: 8px !important;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    color: #888;
+    color: #9ca3af;
     padding: 0 !important;
     transition: all 0.2s !important;
     z-index: 10;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
 }
-.mic-btn:hover { border-color: #111 !important; color: #111; }
+
+.mic-btn:hover { border-color: """ + TEAL + """ !important; color: """ + TEAL + """; background: """ + TEAL_LIGHT + """; }
+
 .mic-btn.recording {
-    background: #111 !important;
-    border-color: #111 !important;
+    background: """ + TEAL + """ !important;
+    border-color: """ + TEAL + """ !important;
     color: #fff !important;
-    animation: pulse 1s infinite;
+    animation: mic-pulse 1.2s ease-in-out infinite;
 }
-@keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0.3) !important; }
-    50% { box-shadow: 0 0 0 4px rgba(0,0,0,0.1) !important; }
+
+@keyframes mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(15,110,86,0.3) !important; }
+    50% { box-shadow: 0 0 0 5px rgba(15,110,86,0.08) !important; }
 }
 
 /* -- Transcription status --------------------------------------------------- */
 .transcription-status {
     font-size: 12px;
-    color: #888;
-    font-family: 'Inter', sans-serif;
+    color: #9ca3af;
+    font-family: 'DM Mono', monospace;
     padding: 4px 0;
     min-height: 20px;
 }
 
-.transcription-status.success { color: #0e6655; }
-.transcription-status.error { color: #c0392b; }
-
 /* -- Mobile ----------------------------------------------------------------- */
 @media (max-width: 768px) {
-    .gradio-container { padding: 8px !important; }
+    .gradio-container { padding: 8px !important; max-width: 100% !important; }
     textarea { font-size: 16px !important; }
     .analyze-btn button { font-size: 16px !important; min-height: 52px !important; }
+    .pipeline { flex-direction: column; gap: 8px; align-items: flex-start; }
+    .pip-connector { width: 2px; height: 16px; margin: 0 0 0 11px; }
+    .app-badges { display: none; }
+    .app-header { padding: 12px 0 10px; }
 }
 """
 
-with gr.Blocks(
-    theme=gr.themes.Base(
-        primary_hue=gr.themes.colors.neutral,
-        secondary_hue=gr.themes.colors.neutral,
-        neutral_hue=gr.themes.colors.neutral,
-        font=gr.themes.GoogleFont("Inter"),
-        font_mono=gr.themes.GoogleFont("JetBrains Mono"),
-    ).set(
-        body_background_fill="#ffffff",
-        body_background_fill_dark="#ffffff",
-        body_text_color="#111111",
-        body_text_color_dark="#111111",
-        block_background_fill="#ffffff",
-        block_background_fill_dark="#ffffff",
-        block_border_color="#e8e8e8",
-        block_border_color_dark="#e8e8e8",
-        input_background_fill="#ffffff",
-        input_background_fill_dark="#ffffff",
-        input_border_color="#e0e0e0",
-        input_border_color_dark="#e0e0e0",
-        button_primary_background_fill="#111111",
-        button_primary_background_fill_dark="#111111",
-        button_primary_background_fill_hover="#333333",
-        button_primary_background_fill_hover_dark="#333333",
-        button_primary_text_color="#ffffff",
-        button_primary_text_color_dark="#ffffff",
-        button_secondary_background_fill="#ffffff",
-        button_secondary_background_fill_dark="#ffffff",
-        button_secondary_text_color="#333333",
-        button_secondary_text_color_dark="#333333",
-        button_secondary_border_color="#dddddd",
-        button_secondary_border_color_dark="#dddddd",
-        background_fill_primary="#ffffff",
-        background_fill_primary_dark="#ffffff",
-        background_fill_secondary="#fafafa",
-        background_fill_secondary_dark="#fafafa",
-    ),
-    css=CSS,
-    title="AMIE Medical Agents",
-    js="""
+# -- JS (mic injection) -------------------------------------------------------
+JS = """
 () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     const MIC_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`;
@@ -594,108 +814,214 @@ with gr.Blocks(
     new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
     setTimeout(scan, 600);
 }
-""",
+"""
+
+# -- App -----------------------------------------------------------------------
+
+with gr.Blocks(
+    theme=gr.themes.Base(
+        primary_hue=gr.themes.colors.emerald,
+        secondary_hue=gr.themes.colors.neutral,
+        neutral_hue=gr.themes.colors.gray,
+        font=gr.themes.GoogleFont("DM Sans"),
+        font_mono=gr.themes.GoogleFont("DM Mono"),
+    ).set(
+        body_background_fill="#f7f8fa",
+        body_background_fill_dark="#f7f8fa",
+        body_text_color="#1a1a1a",
+        body_text_color_dark="#1a1a1a",
+        block_background_fill="#ffffff",
+        block_background_fill_dark="#ffffff",
+        block_border_color="#e4e7ec",
+        block_border_color_dark="#e4e7ec",
+        input_background_fill="#ffffff",
+        input_background_fill_dark="#ffffff",
+        input_border_color="#dde1e6",
+        input_border_color_dark="#dde1e6",
+        button_primary_background_fill=TEAL,
+        button_primary_background_fill_dark=TEAL,
+        button_primary_background_fill_hover=TEAL_HOVER,
+        button_primary_background_fill_hover_dark=TEAL_HOVER,
+        button_primary_text_color="#ffffff",
+        button_primary_text_color_dark="#ffffff",
+        button_secondary_background_fill="#ffffff",
+        button_secondary_background_fill_dark="#ffffff",
+        button_secondary_text_color=TEAL,
+        button_secondary_text_color_dark=TEAL,
+        button_secondary_border_color="#d0d5dd",
+        button_secondary_border_color_dark="#d0d5dd",
+        background_fill_primary="#f7f8fa",
+        background_fill_primary_dark="#f7f8fa",
+        background_fill_secondary="#ffffff",
+        background_fill_secondary_dark="#ffffff",
+    ),
+    css=CSS,
+    title="AMIE Medical Agents",
+    js=JS,
 ) as demo:
 
     # -- Header ----------------------------------------------------------------
     gr.HTML("""
-    <div style="display:flex;align-items:center;gap:10px;padding:16px 0 14px;border-bottom:1px solid #ebebeb;margin-bottom:16px">
-        <div style="width:30px;height:30px;background:#111;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;font-family:Inter,sans-serif;flex-shrink:0">A</div>
-        <div>
-            <div style="font-size:15px;font-weight:600;color:#111;font-family:Inter,sans-serif;line-height:1.2">AMIE Medical Agents</div>
-            <div style="font-size:11px;color:#999;font-family:Inter,sans-serif;margin-top:1px">3 agentes clinicos -- Powered by Gemma 4</div>
+    <div class="app-header">
+        <div class="app-header-left">
+            <div class="app-logo">A</div>
+            <div>
+                <div class="app-title">AMIE Medical Agents</div>
+                <div class="app-subtitle">3 agentes clinicos &middot; gemma-4-31b-it</div>
+            </div>
+        </div>
+        <div class="app-badges">
+            <span class="badge badge-online">online</span>
+            <span class="badge badge-lang">pt-BR</span>
         </div>
     </div>
     """)
 
-    # -- Voice section (always visible) ----------------------------------------
-    gr.HTML("""
-    <div class="voice-header">
-        <div class="voice-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-            </svg>
-        </div>
-        <div>
-            <div class="voice-label">Gravacao de voz</div>
-            <div class="voice-sublabel">Grave a consulta e a transcricao preenche o campo escolhido automaticamente</div>
-        </div>
-    </div>
-    """)
+    # -- Two-column layout -----------------------------------------------------
+    with gr.Row(equal_height=False):
 
-    with gr.Row():
-        audio_input = gr.Audio(
-            sources=["microphone", "upload"],
-            type="filepath",
-            label="Audio",
-            scale=3,
-        )
-        target_field = gr.Dropdown(
-            choices=["Sintomas", "Historico", "Medicacoes"],
-            value="Sintomas",
-            label="Preencher campo",
-            scale=1,
-        )
+        # ===== LEFT: Input panel ==============================================
+        with gr.Column(scale=2, elem_classes=["input-panel"]):
 
-    transcribe_btn = gr.Button("Transcrever e preencher", variant="secondary", size="sm")
-    transcription_status = gr.Markdown("", elem_classes=["transcription-status"])
+            # -- Voice (compact) -----------------------------------------------
+            with gr.Group(elem_classes=["voice-compact"]):
+                gr.HTML("""
+                <div class="voice-tag">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    </svg>
+                    Gravacao de voz &mdash; transcricao automatica via Gemini Flash
+                </div>
+                """)
+                with gr.Row():
+                    audio_input = gr.Audio(
+                        sources=["microphone", "upload"],
+                        type="filepath",
+                        label="Audio",
+                        scale=3,
+                    )
+                    target_field = gr.Dropdown(
+                        choices=["Sintomas", "Historico", "Medicacoes"],
+                        value="Sintomas",
+                        label="Preencher campo",
+                        scale=1,
+                    )
+                transcribe_btn = gr.Button("Transcrever e preencher", variant="secondary", size="sm")
+                transcription_status = gr.Markdown("", elem_classes=["transcription-status"])
 
-    # -- Input fields ----------------------------------------------------------
-    symptoms = gr.Textbox(label="Sintomas", placeholder="Queixa principal, inicio, caracterizacao...", lines=2)
-    history = gr.Textbox(label="Historico", placeholder="Comorbidades, cirurgias, alergias...", lines=2)
-    medications = gr.Textbox(label="Medicacoes", placeholder="Nome, dose e frequencia...", lines=2)
+            # -- Patient data --------------------------------------------------
+            gr.HTML("""
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 4px 0">
+                <div style="display:flex;align-items:center;gap:6px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+                    <span style="font-family:'DM Mono',monospace;font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.8px">Dados do paciente</span>
+                </div>
+            </div>
+            """)
 
-    with gr.Row():
-        example_btn = gr.Button("Carregar exemplo", variant="secondary", size="sm")
+            symptoms = gr.Textbox(label="SINTOMAS", placeholder="Queixa principal, inicio, caracterizacao...", lines=2)
+            history = gr.Textbox(label="HISTORICO MEDICO", placeholder="Comorbidades, cirurgias, alergias...", lines=2)
+            medications = gr.Textbox(label="MEDICACOES", placeholder="Nome, dose e frequencia...", lines=2)
 
-    # -- Analyze button (prominent) --------------------------------------------
-    run_btn = gr.Button("Analisar", variant="primary", size="lg", elem_classes=["analyze-btn"])
+            with gr.Row():
+                example_btn = gr.Button("Carregar exemplo", variant="secondary", size="sm")
 
-    # -- Results (all visible, no tabs) ----------------------------------------
-    gr.HTML('<div style="margin-top:16px"></div>')
+            # -- Analyze button ------------------------------------------------
+            run_btn = gr.Button("Analisar com 3 agentes", variant="primary", size="lg", elem_classes=["analyze-btn"])
 
-    # Anamnese
-    gr.HTML('<div class="result-header-anamnese">Anamnese</div>')
-    out_dialogue = gr.Markdown(value="", elem_classes=["result-body"])
+            # -- Model selector (compact inline) -------------------------------
+            with gr.Row():
+                gr.HTML('<div class="model-tag"><span class="dot"></span>Modelo ativo</div>')
+                model_selector = gr.Dropdown(
+                    choices=[
+                        "gemma-4-31b-it",
+                        "gemma-4-26b-a4b-it",
+                        "gemma-3-27b-it",
+                    ],
+                    value="gemma-4-31b-it",
+                    label="",
+                    show_label=False,
+                    scale=2,
+                    elem_classes=["model-compact"],
+                )
 
-    # Raciocinio Clinico
-    gr.HTML('<div class="result-header-clinical">Raciocinio Clinico</div>')
-    out_clinical = gr.Markdown(value="", elem_classes=["result-body"])
+            # -- API Key (discrete) --------------------------------------------
+            with gr.Accordion("API Key", open=not bool(GOOGLE_API_KEY_ENV)):
+                api_key_input = gr.Textbox(
+                    label="Google API Key",
+                    placeholder="Obtenha em aistudio.google.com",
+                    type="password",
+                    value=GOOGLE_API_KEY_ENV,
+                )
 
-    # Seguranca Medicamentosa
-    gr.HTML('<div class="result-header-safety">Seguranca Medicamentosa</div>')
-    out_medication = gr.Markdown(value="", elem_classes=["result-body"])
+        # ===== RIGHT: Output panel ============================================
+        with gr.Column(scale=3, elem_classes=["output-panel"]):
 
-    # -- Export ----------------------------------------------------------------
-    export_btn = gr.Button("Exportar SOAP", variant="secondary", size="sm")
-    soap_out = gr.Markdown(visible=False)
+            # -- Pipeline bar --------------------------------------------------
+            pipeline_bar = gr.HTML(value=_pipeline_html(), elem_classes=["pipeline-wrap"])
 
-    # -- API Key (bottom, out of the way) --------------------------------------
-    with gr.Accordion("Configuracoes", open=not bool(GOOGLE_API_KEY_ENV)):
-        api_key_input = gr.Textbox(
-            label="Google API Key",
-            placeholder="Obtenha em aistudio.google.com",
-            type="password",
-            value=GOOGLE_API_KEY_ENV,
-        )
-        model_selector = gr.Dropdown(
-            choices=[
-                "gemma-4-31b-it",
-                "gemma-4-26b-a4b-it",
-                "gemma-3-27b-it",
-            ],
-            value="gemma-4-31b-it",
-            label="Modelo",
-        )
+            # -- Anamnese card -------------------------------------------------
+            gr.HTML("""
+            <div class="result-card">
+                <div class="result-header rh-anamnese">
+                    <div class="rh-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    </div>
+                    <div>
+                        <div>Anamnese &mdash; lacunas</div>
+                        <div class="rh-label">Agente de dialogo</div>
+                    </div>
+                </div>
+            </div>
+            """)
+            out_dialogue = gr.Markdown(value="", elem_classes=["result-body"])
 
+            # -- Clinical card -------------------------------------------------
+            gr.HTML("""
+            <div class="result-card">
+                <div class="result-header rh-clinical">
+                    <div class="rh-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <div>
+                        <div>Raciocinio clinico</div>
+                        <div class="rh-label">Diagnostico + conduta</div>
+                    </div>
+                </div>
+            </div>
+            """)
+            out_clinical = gr.Markdown(value="", elem_classes=["result-body"])
+
+            # -- Safety card ---------------------------------------------------
+            gr.HTML("""
+            <div class="result-card">
+                <div class="result-header rh-safety">
+                    <div class="rh-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div>
+                        <div>Seguranca farmacologica</div>
+                        <div class="rh-label">Interacoes + ajustes</div>
+                    </div>
+                </div>
+            </div>
+            """)
+            out_medication = gr.Markdown(value="", elem_classes=["result-body"])
+
+            # -- Export footer -------------------------------------------------
+            gr.HTML('<div class="export-footer">Exportar evolucao</div>')
+            with gr.Row():
+                export_soap_btn = gr.Button("SOAP", variant="secondary", size="sm")
+                export_md_btn = gr.Button("Markdown", variant="secondary", size="sm")
+            soap_out = gr.Markdown(visible=False)
+
+    # -- Disclaimer ------------------------------------------------------------
     gr.HTML("""
     <div class="disclaimer">
-        Ferramenta de suporte clinico -- nao substitui o julgamento medico.
+        Ferramenta de suporte clinico &mdash; nao substitui o julgamento medico.
         Toda conduta deve ser validada por profissional habilitado.<br/>
-        Inspirado no AMIE (Google DeepMind) -- Powered by Gemma 4 via Google AI.
+        Inspirado no AMIE (Google DeepMind) &mdash; Powered by Gemma 4 via Google AI.
     </div>
     """)
 
@@ -709,7 +1035,7 @@ with gr.Blocks(
     run_btn.click(
         fn=analyze,
         inputs=[symptoms, history, medications, api_key_input, model_selector],
-        outputs=[out_dialogue, out_clinical, out_medication],
+        outputs=[pipeline_bar, out_dialogue, out_clinical, out_medication],
     )
 
     example_btn.click(
@@ -717,8 +1043,14 @@ with gr.Blocks(
         outputs=[symptoms, history, medications],
     )
 
-    export_btn.click(
+    export_soap_btn.click(
         fn=export_soap,
+        inputs=[symptoms, history, medications, out_dialogue, out_clinical, out_medication],
+        outputs=[soap_out],
+    )
+
+    export_md_btn.click(
+        fn=export_markdown,
         inputs=[symptoms, history, medications, out_dialogue, out_clinical, out_medication],
         outputs=[soap_out],
     )
