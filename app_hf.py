@@ -364,10 +364,14 @@ label > span, .label-wrap span {
     letter-spacing: 0.8px !important;
 }
 
-/* -- Blocks: reset all borders by default ----------------------------------- */
+/* -- Blocks: reset defaults -------------------------------------------------- */
 .block, .form, .gap, div[class*="block"] {
-    background: transparent !important;
     box-shadow: none !important;
+}
+
+/* Kill borders on generic blocks but NOT on card groups */
+.gradio-container .block:not([class*="card-"]),
+.gradio-container .form:not([class*="card-"]) {
     border: none !important;
 }
 
@@ -379,9 +383,20 @@ label > span, .label-wrap span {
     padding: 0 !important;
 }
 
-.input-panel > .form, .input-panel > div > .form {
-    padding: 20px !important;
-    gap: 6px !important;
+/* Tighten everything inside input panel */
+.input-panel > .form, .input-panel > div > .form,
+.input-panel .gap, .input-panel > div {
+    padding: 16px !important;
+    gap: 4px !important;
+}
+
+.input-panel .block {
+    padding: 0 !important;
+}
+
+/* Make textareas in input panel snug */
+.input-panel textarea {
+    padding: 10px 12px !important;
 }
 
 .output-panel {
@@ -495,7 +510,7 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 .pip-done + .pip-connector { border-color: """ + TEAL + """; }
 
 /* -- Result cards (gr.Group wrappers) --------------------------------------- */
-.card-anamnese, .card-clinical, .card-safety {
+div.card-anamnese, div.card-clinical, div.card-safety {
     background: #fff !important;
     border: 1px solid #e4e7ec !important;
     border-radius: 14px !important;
@@ -504,18 +519,40 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
     padding: 0 !important;
 }
 
-.card-anamnese .block, .card-clinical .block, .card-safety .block,
-.card-anamnese .form, .card-clinical .form, .card-safety .form,
-.card-anamnese > .group, .card-clinical > .group, .card-safety > .group {
+/* Kill all internal borders, gaps, and padding inside cards */
+div.card-anamnese *, div.card-clinical *, div.card-safety * {
+    border-color: transparent !important;
+}
+
+div.card-anamnese .block, div.card-clinical .block, div.card-safety .block,
+div.card-anamnese .form, div.card-clinical .form, div.card-safety .form,
+div.card-anamnese .gap, div.card-clinical .gap, div.card-safety .gap {
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
     border-radius: 0 !important;
+    margin: 0 !important;
 }
 
-.card-anamnese > div, .card-clinical > div, .card-safety > div {
+/* Remove all gaps between children inside card groups */
+div.card-anamnese > div, div.card-clinical > div, div.card-safety > div,
+div.card-anamnese .gap, div.card-clinical .gap, div.card-safety .gap,
+div.card-anamnese .form, div.card-clinical .form, div.card-safety .form {
     gap: 0 !important;
+}
+
+/* Re-apply specific borders for internal elements */
+div.card-anamnese .result-header, div.card-clinical .result-header, div.card-safety .result-header {
+    border-bottom: none !important;
+}
+
+div.card-safety .export-footer {
+    border-top: 1px solid #f0f2f5 !important;
+}
+
+div.card-safety .export-footer + div button {
+    margin: 0 8px 8px !important;
 }
 
 .result-header {
@@ -554,15 +591,18 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 .rh-safety .rh-icon { background: #fdecc8; color: #92400e; }
 
 .result-body {
-    padding: 16px !important;
-    min-height: 48px;
+    padding: 14px 16px !important;
+    min-height: 44px;
+    background: #fff !important;
 }
 
-.result-body:empty::before, .result-body .prose:empty::before, .result-body .markdown:empty::before {
+.result-body .prose:empty::before, .result-body .markdown:empty::before,
+.result-body > .prose > p:empty::before {
     content: "Aguardando analise...";
-    color: #c9cfd6;
+    color: #d0d5dd;
     font-style: italic;
     font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
 }
 
 .result-body .prose, .result-body .markdown {
