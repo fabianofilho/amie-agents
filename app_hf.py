@@ -364,20 +364,26 @@ label > span, .label-wrap span {
     letter-spacing: 0.8px !important;
 }
 
-/* Fix Gradio floating labels: push above input, no overlap */
-.block > label, .block > .label-wrap {
-    position: relative !important;
-    top: 0 !important;
+/* Fix Gradio floating labels — force static positioning */
+.block > label, .block > .label-wrap,
+span[data-testid="block-info"], .block-label {
+    position: static !important;
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
     margin-bottom: 4px !important;
     background: transparent !important;
     z-index: auto !important;
+    display: block !important;
 }
 
-/* Remove the label background strip that overlaps borders */
-.block-label, .block > label > span,
-label[data-testid] > span {
+/* Label text styling — no background strip */
+.block > label > span, .block-label > span,
+label[data-testid] > span, span[data-testid="block-info"] {
     background: transparent !important;
     padding: 0 !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
 }
 
 /* -- Blocks: reset defaults -------------------------------------------------- */
@@ -408,6 +414,8 @@ label[data-testid] > span {
 
 .input-panel .block {
     padding: 0 !important;
+    overflow: visible !important;
+    padding-top: 0 !important;
 }
 
 /* Make textareas in input panel snug */
@@ -570,6 +578,13 @@ button.sm { padding: 6px 16px !important; font-size: 12px !important; }
 
 [class*="card-safety"] button {
     margin: 4px 8px 10px !important;
+}
+
+/* Keep export buttons row inside card boundaries */
+[class*="card-safety"] .row {
+    padding: 0 8px 8px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
 }
 
 .result-header {
